@@ -1,3 +1,3 @@
 # wskstatus
 
-A description of this package.
+wskstatus lists activations from your wsk instance and displays a bunch of statistics
