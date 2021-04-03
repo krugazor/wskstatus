@@ -216,7 +216,7 @@ struct ActivationStore {
         }
     }
 
-    var top5 : [String] {
+    func top(_ count: Int) -> [String] {
         let names = items.compactMap({ $0.name })
         let occurences = names.reduce([:]) { prev, name -> [String:Int] in
             var next = prev
@@ -227,20 +227,22 @@ struct ActivationStore {
             arg0.value > arg1.value
         }
         var result : [String] = []
-        for i in 0..<min(5,sorted.count) {
+        for i in 0..<min(count,sorted.count) {
             result.append(sorted[i].key)
         }
         return result
     }
 
-    var last5 : [Date] {
-        var result = [Date]()
+    var top5 : [String] {
+        return top(5)
+    }
 
-        for i in 0..<min(5,items.count) {
-            result.append(Date(ow: items[i].start))
-        }
+    func last(_ count: Int = 5) -> [ActivationInfo] {
+        return Array(items[ 0..<min(count,items.count) ])
+    }
 
-        return result
+    var last5 : [ActivationInfo] {
+        return last(5)
     }
 
     var duplicates : Int {

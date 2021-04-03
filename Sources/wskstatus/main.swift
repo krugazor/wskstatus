@@ -1,5 +1,6 @@
 import Foundation
 import ArgumentParser
+import TermPlot
 
 struct WskStatus : ParsableCommand {
     static var configuration = CommandConfiguration(
@@ -17,7 +18,7 @@ struct WskStatus : ParsableCommand {
     var token: String?
     
     @Option(name: .shortAndLong, help: "The tick at which data should be aggregated: minutely, hourly, daly, weekly, monthly, yearly")
-    var frame: TimeFrame = .hourly
+    var frame: TimeFrame = .minutely
     
     func readWskProps() throws -> [String:String] {
         var result = [String:String]()
@@ -47,28 +48,79 @@ struct WskStatus : ParsableCommand {
             guard let apibase = tapibase, let apins = tapins, let apiauth = tapiauth else { throw ConfigurationError(msg: "Missing configuration fields. Please check your options and your .wskprops") }
             
             var data = ActivationStore(base: apibase, auth: apiauth, namespace: apins)
+            let tick: TimeInterval = 1
+            var total: TimeInterval
             switch frame {
             case .minutely:
-                data.minDate = Date(timeIntervalSinceNow: -160*60)
+                total = 180*tick
+                data.minDate = Date(timeIntervalSinceNow: -total*60)
             case .hourly:
-                data.minDate = Date(timeIntervalSinceNow: -7*24*3600)
+                total = 7*24
+                data.minDate = Date(timeIntervalSinceNow: -total*3600)
             case .daily:
-                data.minDate = Date(timeIntervalSinceNow: -2*31*24*3600)
+                total = 180
+                data.minDate = Date(timeIntervalSinceNow: -total*24*3600)
             case .weekly:
-                data.minDate = Date(timeIntervalSinceNow: -180*24*3600)
+                total = 180
+                data.minDate = Date(timeIntervalSinceNow: -total*7*24*3600)
             case .monthly:
-                data.minDate = Date(timeIntervalSinceNow: -2*365*24*3600)
+                total = 180
+                data.minDate = Date(timeIntervalSinceNow: -total*30*24*3600) // yea yea, I know
             case .yearly:
-                data.minDate = Date(timeIntervalSinceNow: -120*365*24*3600)
+                total = 120
+                data.minDate = Date(timeIntervalSinceNow: -total*365*24*3600) // yea yea, I know
             }
             data.timeframe = frame
             data.refresh {
             }
-            print(data.top5)
-            print(data.last5)
-            print("\(data.binned.map({ $0.count })) activations")
-            print(data.averageDurations)
-            print("\(data.duplicates) duplicates")
+
+            // Screen setup
+            let activations = StandardSeriesWindow(tick: tick, total: total)
+            activations.seriesColor = .monochrome(.light_yellow)
+            activations.seriesStyle = .line
+            activations.boxStyle = .ticked
+            activations.addValues(data.binned.map( { Double($0.count) }))
+            let averages = StandardSeriesWindow(tick: tick, total: total)
+            averages.addValues(data.averageDurations.map( { Double($0) } ))
+            averages.seriesColor = .monochrome(.light_cyan)
+            averages.seriesStyle = .line
+            averages.boxStyle = .ticked
+            let top = TextWindow()
+            top.add("\(data.top5)")
+            let last = TextWindow()
+            last.add("\(data.last5)")
+            let screenLeft = try TermMultiWindow.setup(stack: .vertical, ratios:[0.5,0.5], activations, averages)
+            let screenRight = try TermMultiWindow.setup(stack: .vertical, ratios:[0.5,0.5], top, last)
+            let screen = try TermMultiWindow.setup(stack: .horizontal, ratios: [0.5, 0.5], screenLeft, screenRight)
+            screen.start()
+
+            let _ = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [self] timer in
+                // update the data
+                switch frame {
+                case .minutely:
+                    data.minDate = Date(timeIntervalSinceNow: -total*60)
+                case .hourly:
+                    data.minDate = Date(timeIntervalSinceNow: -total*3600)
+                case .daily:
+                    data.minDate = Date(timeIntervalSinceNow: -total*24*3600)
+                case .weekly:
+                    data.minDate = Date(timeIntervalSinceNow: -total*7*24*3600)
+                case .monthly:
+                    data.minDate = Date(timeIntervalSinceNow: -total*30*24*3600) // yea yea, I know
+                case .yearly:
+                    data.minDate = Date(timeIntervalSinceNow: -total*365*24*3600) // yea yea, I know
+                }
+                data.refresh {
+                }
+                activations.replaceValues(with: data.binned.map({ Double($0.count) }))
+                averages.replaceValues(with: data.averageDurations.map( { Double($0) } ) )
+                top.clear()
+                top.add("\(data.top5)")
+                last.clear()
+                last.add("\(data.last5)")
+            }
+
+            RunLoop.current.run(until: Date.distantFuture)
         } catch {
             if let error = error as? ConfigurationError {
                 print(error.msg)
