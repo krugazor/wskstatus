@@ -143,16 +143,53 @@ struct ActivationStore {
 
     var binned : [[ActivationInfo]] {
         var result = [[ActivationInfo]]()
+        let compSet = Set<Calendar.Component>(arrayLiteral: .year, .yearForWeekOfYear, .month, .weekOfYear, .day, .hour, .minute, .timeZone)
 
-        var upto = Calendar.current.dateComponents(Set(arrayLiteral: .year, .month, .weekOfYear, .day, .hour, .minute, .timeZone), from: Date())
+        var upto : DateComponents
         let interval : DateComponents
         switch timeframe {
-        case .minutely: interval = DateComponents(minute: -1) ; upto.minute = upto.minute! + 1
-        case .hourly: interval = DateComponents(hour: -1) ; upto.hour = upto.hour! + 1
-        case .daily: interval = DateComponents(day: -1) ; upto.day = upto.day! + 1
-        case .weekly: interval = DateComponents(weekOfYear: -1) ; upto.weekOfYear = upto.weekOfYear! + 1
-        case .monthly: interval = DateComponents(month: -1) ; upto.month = upto.month! + 1
-        case .yearly: interval = DateComponents(year: -1) ; upto.year = upto.year! + 1
+        case .minutely:
+            upto = Calendar.current.dateComponents(compSet,
+                    from: Calendar.current.date(byAdding: .minute, value: 1, to: Date(), wrappingComponents: false) ?? Date.distantPast)
+            interval = DateComponents(minute: -1) ; upto.minute = upto.minute! + 1
+        case .hourly:
+            interval = DateComponents(hour: -1)
+            upto = Calendar.current.dateComponents(compSet,
+                    from: Calendar.current.date(byAdding: .hour, value: 1, to: Date(), wrappingComponents: false) ?? Date.distantPast)
+            upto.minute = 0
+            upto.second = 0
+        case .daily:
+            interval = DateComponents(day: -1)
+            upto = Calendar.current.dateComponents(compSet,
+                    from: Calendar.current.date(byAdding: .day, value: 1, to: Date(), wrappingComponents: false) ?? Date.distantPast)
+            upto.hour = 0
+            upto.minute = 0
+            upto.second = 0
+        case .weekly:
+            interval = DateComponents(weekOfYear: -1)
+            upto = Calendar.current.dateComponents(compSet,
+                    from: Calendar.current.date(byAdding: .weekOfYear, value: 1, to: Date(), wrappingComponents: false) ?? Date.distantPast)
+            upto.hour = 0
+            upto.minute = 0
+            upto.second = 0
+       case .monthly:
+            interval = DateComponents(month: -1)
+            upto = Calendar.current.dateComponents(compSet,
+                    from: Calendar.current.date(byAdding: .month, value: 1, to: Date(), wrappingComponents: false) ?? Date.distantPast)
+            upto.day = 1
+            upto.hour = 0
+            upto.minute = 0
+            upto.second = 0
+        case .yearly:
+            interval = DateComponents(year: -1)
+            upto = Calendar.current.dateComponents(compSet,
+                    from: Calendar.current.date(byAdding: .year, value: 1, to: Date(), wrappingComponents: false) ?? Date.distantPast)
+            upto.month = 1
+            upto.weekOfYear = nil
+            upto.day = 1
+            upto.hour = 0
+            upto.minute = 0
+            upto.second = 0
         }
 
         var uptodate = (Calendar.current.date(from: upto) ?? Date.distantPast)
