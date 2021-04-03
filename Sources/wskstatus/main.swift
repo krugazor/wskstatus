@@ -54,7 +54,7 @@ extension ActivationStore {
     }
 
     func lastLogs(_ count: Int) -> [String] {
-        let logs = self.last(count).compactMap( { activation in
+        let logs = self.last(count).reversed().compactMap( { activation in
             activation.logs?.map( { activation.activationId+" \(activation.name): "+$0 } )
         } )
         return logs.map( { $0.joined(separator: "\n") } )
@@ -176,8 +176,8 @@ struct WskStatus : ParsableCommand {
                 }
                 data.refresh {
                 }
-                activations.replaceValues(with: data.binned.map({ Double($0.count) }))
-                averages.replaceValues(with: data.averageDurations.map( { Double($0) } ) )
+                activations.replaceValues(with: data.binned.map({ Double($0.count) }) + [0.0,0.0])
+                averages.replaceValues(with: data.averageDurations.map( { Double($0) } ) + [0.0,0.0] )
                 top.replace(with: "Top activations\n")
                 top.add( data.topAttributedString(top.rows-4))
                 last.replace(with:data.lastLogs(20).joined(separator: "\n"))
