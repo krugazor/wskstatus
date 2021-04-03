@@ -1,6 +1,10 @@
 import Foundation
 import ArgumentParser
 import Dispatch
+#if os(Linux)
+import TermPlot
+import FoundationNetworking
+#endif
 
 enum TimeFrame : String, ExpressibleByArgument {
     case minutely
@@ -21,7 +25,7 @@ struct CommunicationError : Error {
 var networkSession = URLSession(configuration: URLSessionConfiguration.default)
 
 // https://github.com/apache/openwhisk-client-js/blob/master/README.md#openwhisk-client-for-javascript
-func pollActivations(base: String, auth: String, since: Int64? = nil, upto: Int64? = nil, namespace: String, handler: @escaping ((Result<[ActivationInfo], CommunicationError>)->Void)) {
+func pollActivations(base: String, auth: String, since: Int64? = nil, upto: Int64? = nil, namespace: String, moreInfo: Bool = false, handler: @escaping ((Result<[ActivationInfo], CommunicationError>)->Void)) {
     guard var apiurl = URL(string: "https://\(base)/api/v1/namespaces/\(namespace)/activations") else {
         handler(.failure(CommunicationError(msg: "base url not correct")))
         return
@@ -38,6 +42,15 @@ func pollActivations(base: String, auth: String, since: Int64? = nil, upto: Int6
     if let upto = upto {
         if queryString.isEmpty {
             queryString = "upto=\(upto)"
+        } else {
+            queryString = queryString + "&upto=\(upto)"
+        }
+    }
+    if moreInfo {
+        if queryString.isEmpty {
+            queryString = "docs=true"
+        } else {
+            queryString = queryString + "&docs=true"
         }
     }
     if !queryString.isEmpty {
@@ -61,11 +74,11 @@ func pollActivations(base: String, auth: String, since: Int64? = nil, upto: Int6
     task.resume()
 }
 
-func pollActivationsSync(base: String, auth: String, since: Int64? = nil, upto: Int64? = nil, namespace: String, handler: @escaping ((Result<[ActivationInfo], CommunicationError>)->Void)) {
+func pollActivationsSync(base: String, auth: String, since: Int64? = nil, upto: Int64? = nil, namespace: String, moreInfo: Bool = false, handler: @escaping ((Result<[ActivationInfo], CommunicationError>)->Void)) {
     let sem = DispatchSemaphore(value: 0)
     var result : Result<[ActivationInfo], CommunicationError>?
 
-    pollActivations(base: base, auth: auth, since: since, upto: upto, namespace: namespace) { resultasync in
+    pollActivations(base: base, auth: auth, since: since, upto: upto, namespace: namespace, moreInfo: moreInfo) { resultasync in
         result = resultasync
         sem.signal()
     }
@@ -91,7 +104,7 @@ struct ActivationStore {
         // check forward
         if let firstDate = items.first?.end {
             var list : [ActivationInfo] = []
-            pollActivationsSync(base: base, auth: auth, since: Int64(firstDate) + 1, namespace: namespace) { result in
+            pollActivationsSync(base: base, auth: auth, since: Int64(firstDate) + 1, namespace: namespace, moreInfo: true) { result in
                 switch result {
                 case .success(let activations):
                     list=activations.sorted(by: { $0.start > $1.start })
@@ -102,7 +115,7 @@ struct ActivationStore {
             items.insert(contentsOf: list, at: 0)
         } else {
             var list : [ActivationInfo] = []
-            pollActivationsSync(base: base, auth: auth, namespace: namespace) { result in
+            pollActivationsSync(base: base, auth: auth, namespace: namespace, moreInfo: true) { result in
                 switch result {
                 case .success(let activations):
                     list=activations.sorted(by: { $0.start > $1.start })
@@ -118,7 +131,7 @@ struct ActivationStore {
         while (items.last?.start ?? Int64.min) >= minEpoch {
             var list : [ActivationInfo] = []
             if let upto = items.last?.start {
-                pollActivationsSync(base: base, auth: auth, upto: upto - 1, namespace: namespace) { result in
+                pollActivationsSync(base: base, auth: auth, upto: upto - 1, namespace: namespace, moreInfo: true) { result in
                     switch result {
                     case .success(let activations):
                         list = activations.sorted(by: { $0.start > $1.start }).filter({ $0.start >= minEpoch })
@@ -216,24 +229,25 @@ struct ActivationStore {
         }
     }
 
-    func top(_ count: Int) -> [String] {
-        let names = items.compactMap({ $0.name })
-        let occurences = names.reduce([:]) { prev, name -> [String:Int] in
+    func top(_ count: Int) -> [(name: String, occurences: Int, average: Int64)] {
+        let names = items.compactMap({ (name:$0.name, duration: $0.duration) })
+        let occurences = names.reduce([:]) { prev, item -> [String:(Int, Int64)] in // cumulative time
             var next = prev
-            next[name] = (next[name] ?? 0) + 1
+            next[item.name] = ((next[item.name]?.0 ?? 0) + 1, (next[item.name]?.1 ?? 0) + item.duration)
             return next
         }
         let sorted = occurences.sorted { (arg0, arg1) -> Bool in
             arg0.value > arg1.value
         }
-        var result : [String] = []
+        var result : [(name: String, occurences: Int, average: Int64)] = []
         for i in 0..<min(count,sorted.count) {
-            result.append(sorted[i].key)
+            let avg : Int64 = sorted[i].value.0 == 0 ? 0 : sorted[i].value.1 / Int64(sorted[i].value.0)
+            result.append((sorted[i].key, sorted[i].value.0, avg))
         }
         return result
     }
 
-    var top5 : [String] {
+    var top5 : [(name: String, occurences: Int, average: Int64)] {
         return top(5)
     }
 

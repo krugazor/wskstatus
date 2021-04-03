@@ -115,6 +115,22 @@ struct ActivationInfo : Codable, Equatable, Hashable {
     var namespace: String
     var publish: Bool
     var start: Int64
-    var statusCode: Int
+    var statusCode: Int? // either status or logs
     var version: String
+    var logs: [String]? // either status or logs
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        activationId = try container.decode(String.self, forKey: .activationId)
+        annotations = try? container.decode([BasicInfo].self, forKey: .annotations)
+        start = try container.decode(Int64.self, forKey: .start)
+        duration = try container.decode(Int64.self, forKey: .duration)
+        end = try container.decode(Int64.self, forKey: .end)
+        name = try container.decode(String.self, forKey: .name)
+        namespace = try container.decode(String.self, forKey: .namespace)
+        publish = try container.decode(Bool.self, forKey: .publish)
+        statusCode = try? container.decode(Int.self, forKey: .statusCode)
+        version = try container.decode(String.self, forKey: .version)
+        logs = try? container.decode([String].self, forKey: .logs)
+    }
 }

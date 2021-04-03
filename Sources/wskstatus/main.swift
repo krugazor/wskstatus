@@ -2,6 +2,69 @@ import Foundation
 import ArgumentParser
 import TermPlot
 
+#if os(macOS)
+import AppKit
+#endif
+
+#if os(Linux)
+extension NSMutableAttributedString {
+    convenience init() {
+        self.init(string: "")
+    }
+}
+#endif
+
+// from https://stackoverflow.com/questions/32830519/is-there-joinwithseparator-for-attributed-strings
+extension Sequence where Iterator.Element == NSAttributedString {
+    func joined(with separator: NSAttributedString) -> NSAttributedString {
+        return self.reduce(NSMutableAttributedString()) {
+            (r, e) in
+            if r.length > 0 {
+                r.append(separator)
+            }
+            r.append(e)
+            return r
+        }
+    }
+
+    func joined(with separator: String = "") -> NSAttributedString {
+        return self.joined(with: NSAttributedString(string: separator))
+    }
+}
+extension ActivationStore {
+    func topAttributedString(_ count: Int) -> NSAttributedString {
+        var elements = [NSAttributedString]()
+        for item in self.top(count) {
+            #if os(macOS)
+            elements.append( NSAttributedString(string: item.name, attributes: [ NSAttributedString.Key("NSFont"): NSFont.boldSystemFont(ofSize: 9) ]) )
+            elements.append( NSAttributedString(string: ": \(item.occurences) activations, \(item.average)ms average duration\n") )
+            #elseif os(Linux)
+            elements.append( NSAttributedString(item.name, color: .default, style: .bold) )
+            elements.append( NSAttributedString(": \(item.occurences) activations, \(item.average)ms average duration\n", color: .default, style: .default) )
+            #else
+            elements.append( NSAttributedString(string: item.name) )
+            elements.append( NSAttributedString(string: ": \(item.occurences) activations, \(item.average)ms average duration\n") )
+           #endif
+        }
+        return elements.joined()
+    }
+    
+    var top5AttributedString : NSAttributedString {
+        self.topAttributedString(5)
+    }
+
+    func lastLogs(_ count: Int) -> [String] {
+        let logs = self.last(count).compactMap( { activation in
+            activation.logs?.map( { activation.activationId+" \(activation.name): "+$0 } )
+        } )
+        return logs.map( { $0.joined(separator: "\n") } )
+    }
+
+    var last5Logs : [String] {
+        return lastLogs(5)
+    }
+}
+
 struct WskStatus : ParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: """
@@ -86,9 +149,10 @@ struct WskStatus : ParsableCommand {
             averages.seriesStyle = .line
             averages.boxStyle = .ticked
             let top = TextWindow()
-            top.add("\(data.top5)")
+            top.replace(with: "Top activations\n")
+            top.add(data.top5AttributedString)
             let last = TextWindow()
-            last.add("\(data.last5)")
+            last.add(data.last5Logs.joined(separator: "\n"))
             let screenLeft = try TermMultiWindow.setup(stack: .vertical, ratios:[0.5,0.5], activations, averages)
             let screenRight = try TermMultiWindow.setup(stack: .vertical, ratios:[0.5,0.5], top, last)
             let screen = try TermMultiWindow.setup(stack: .horizontal, ratios: [0.5, 0.5], screenLeft, screenRight)
@@ -114,10 +178,9 @@ struct WskStatus : ParsableCommand {
                 }
                 activations.replaceValues(with: data.binned.map({ Double($0.count) }))
                 averages.replaceValues(with: data.averageDurations.map( { Double($0) } ) )
-                top.clear()
-                top.add("\(data.top5)")
-                last.clear()
-                last.add("\(data.last5)")
+                top.replace(with: "Top activations\n")
+                top.add( data.topAttributedString(top.rows-4))
+                last.replace(with:data.lastLogs(20).joined(separator: "\n"))
             }
 
             RunLoop.current.run(until: Date.distantFuture)
