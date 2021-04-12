@@ -10,7 +10,7 @@ let package = Package(
         ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(path: "../TermPlot"),
+        .package(name: "TermPlot", url: "https://github.com/krugazor/TermPlot", from: "1.2.2"),
         .package(name: "swift-argument-parser", url: "https://github.com/apple/swift-argument-parser", from: "0.3.0"),
 
     ],

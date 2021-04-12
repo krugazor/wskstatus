@@ -218,9 +218,32 @@ struct ActivationStore {
 
         return result
     }
-
+    
     var averageDurations : [Int64] {
         return binned.map { list in
+            if list.isEmpty { return 0 }
+            let sum = list.reduce(0) { (prev, cur) in
+                return prev + (cur.end - cur.start)
+            }
+            return sum / Int64(list.count)
+        }
+    }
+
+    func binned(_ count: Int) -> [[ActivationInfo]]{
+        var bins = self.binned
+        while bins.count > count {
+            bins.remove(at: 0)
+        }
+        return bins
+    }
+
+    func averaged(_ count: Int) -> [Int64] {
+        var bins = self.binned
+        while bins.count > count {
+            bins.remove(at: 0)
+        }
+        
+        return bins.map { list in
             if list.isEmpty { return 0 }
             let sum = list.reduce(0) { (prev, cur) in
                 return prev + (cur.end - cur.start)

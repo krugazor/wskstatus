@@ -112,25 +112,19 @@ struct WskStatus : ParsableCommand {
             
             var data = ActivationStore(base: apibase, auth: apiauth, namespace: apins)
             let tick: TimeInterval = 1
-            var total: TimeInterval
+            var total: TimeInterval = 80
             switch frame {
             case .minutely:
-                total = 180*tick
                 data.minDate = Date(timeIntervalSinceNow: -total*60)
             case .hourly:
-                total = 7*24
                 data.minDate = Date(timeIntervalSinceNow: -total*3600)
             case .daily:
-                total = 180
                 data.minDate = Date(timeIntervalSinceNow: -total*24*3600)
             case .weekly:
-                total = 180
                 data.minDate = Date(timeIntervalSinceNow: -total*7*24*3600)
             case .monthly:
-                total = 180
                 data.minDate = Date(timeIntervalSinceNow: -total*30*24*3600) // yea yea, I know
             case .yearly:
-                total = 120
                 data.minDate = Date(timeIntervalSinceNow: -total*365*24*3600) // yea yea, I know
             }
             data.timeframe = frame
@@ -159,6 +153,7 @@ struct WskStatus : ParsableCommand {
             screen.start()
 
             let _ = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [self] timer in
+                total = Double(activations.cols*3/4)
                 // update the data
                 switch frame {
                 case .minutely:
@@ -176,8 +171,8 @@ struct WskStatus : ParsableCommand {
                 }
                 data.refresh {
                 }
-                activations.replaceValues(with: data.binned.map({ Double($0.count) }) + [0.0,0.0])
-                averages.replaceValues(with: data.averageDurations.map( { Double($0) } ) + [0.0,0.0] )
+                activations.replaceValues(with: data.binned(activations.cols*3/4).map({ Double($0.count) }) + [0.0])
+                averages.replaceValues(with: data.averaged(averages.cols*3/4).map( { Double($0) } ) + [0.0] )
                 top.replace(with: "Top activations\n")
                 top.add( data.topAttributedString(top.rows-4))
                 last.replace(with:data.lastLogs(20).joined(separator: "\n"))
