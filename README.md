@@ -13,3 +13,8 @@ wskstatus lists activations from your wsk instance and displays a bunch of stati
 
 - [OpenWhisk](https://github.com/apache/openwhisk)
 - [TermPlot](https://github.com/krugazor/TermPlot)
+
+### Change Log
+
+- 0.1.1: added color (red for errors) in the action log subwindow
+- 0.1.0: initial release
