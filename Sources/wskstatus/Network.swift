@@ -1,5 +1,6 @@
 import Foundation
 import ArgumentParser
+import AnyCodable
 import Dispatch
 #if os(Linux)
 import TermPlot

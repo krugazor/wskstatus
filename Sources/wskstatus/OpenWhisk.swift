@@ -1,4 +1,5 @@
 import Foundation
+import AnyCodable
 
 // I have NO idea whether the times and dates are stored in UTC or with the server's timezone, or what
 extension Date {
@@ -106,6 +107,12 @@ struct ActivationInfo : Codable, Equatable, Hashable {
     static func == (lhs: ActivationInfo, rhs: ActivationInfo) -> Bool {
         return lhs.activationId == rhs.activationId
     }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(activationId)
+        hasher.combine(start)
+        hasher.combine(end)
+    }
 
     var activationId: String
     var annotations: [BasicInfo]?
@@ -118,6 +125,7 @@ struct ActivationInfo : Codable, Equatable, Hashable {
     var statusCode: Int? // either status or logs
     var version: String
     var logs: [String]? // either status or logs
+    var response: [String: AnyCodable]?
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -132,5 +140,21 @@ struct ActivationInfo : Codable, Equatable, Hashable {
         statusCode = try? container.decode(Int.self, forKey: .statusCode)
         version = try container.decode(String.self, forKey: .version)
         logs = try? container.decode([String].self, forKey: .logs)
+        
+        if statusCode == nil {
+            // recover the status code from the result
+            response = try? container.decode([String: AnyCodable].self, forKey: .response)
+            let success = (response?["success"]?.value as? Bool) ?? true
+            statusCode = success ? 0 : 1
+            
+            // try to extract the error
+            if !success {
+                logs = []
+                if let status = response?["status"]?.value as? String { logs?.append(status) }
+                if let result = response?["result"]?.value as? [String:Any], let err = result["error"] as? String {
+                    logs?.append(err)
+                }
+            }
+        }
     }
 }

@@ -53,14 +53,33 @@ extension ActivationStore {
         self.topAttributedString(5)
     }
 
-    func lastLogs(_ count: Int) -> [String] {
+    func lastLogs(_ count: Int) -> [NSAttributedString] {
         let logs = self.last(count).reversed().compactMap( { activation in
-            activation.logs?.map( { activation.activationId+" \(activation.name): "+$0 } )
+            activation.logs?.map { log -> NSAttributedString in
+                // activation.activationId+" \(activation.name): "+$0
+                #if os(macOS)
+                let assembled = NSMutableAttributedString(string: activation.activationId+" \(activation.name): ")
+                assembled.addAttribute(NSAttributedString.Key("NSFont"), value: NSFont.boldSystemFont(ofSize: 9), range: NSRange(location: 0,length: assembled.length))
+                if activation.statusCode != 0 {
+                    assembled.addAttribute(NSAttributedString.Key("NSColor"), value: NSColor.red, range: NSRange(location: 0,length: assembled.length))
+                }
+                assembled.append(NSAttributedString(string: log))
+                #elseif os(Linux)
+                var elements = [NSAttributedString]()
+                let color : TermColor = activation.statusCode == 0 ? .default : .red
+                elements.append(NSAttributedString(activation.activationId+" \(activation.name): ", color: color, style: .bold))
+                elements.append(NSAttributedString(string: log))
+                let assembled = elements.joined()
+                #else
+                let assembled = NSAttributedString(string: activation.activationId+" \(activation.name): "+log)
+                #endif
+                return assembled
+            }
         } )
-        return logs.map( { $0.joined(separator: "\n") } )
+        return logs.map( { $0.joined(with: "\n") } )
     }
 
-    var last5Logs : [String] {
+    var last5Logs : [NSAttributedString] {
         return lastLogs(5)
     }
 }
@@ -146,9 +165,9 @@ struct WskStatus : ParsableCommand {
             top.replace(with: "Top activations\n")
             top.add(data.top5AttributedString)
             let last = TextWindow()
-            last.add(data.last5Logs.joined(separator: "\n"))
+            last.add(data.last5Logs.joined(with: "\n"))
             let screenLeft = try TermMultiWindow.setup(stack: .vertical, ratios:[0.5,0.5], activations, averages)
-            let screenRight = try TermMultiWindow.setup(stack: .vertical, ratios:[0.5,0.5], top, last)
+            let screenRight = try TermMultiWindow.setup(stack: .vertical, ratios:[0.25,0.75], top, last)
             let screen = try TermMultiWindow.setup(stack: .horizontal, ratios: [0.5, 0.5], screenLeft, screenRight)
             screen.start()
 
@@ -175,7 +194,7 @@ struct WskStatus : ParsableCommand {
                 averages.replaceValues(with: data.averaged(averages.cols*3/4).map( { Double($0) } ) + [0.0] )
                 top.replace(with: "Top activations\n")
                 top.add( data.topAttributedString(top.rows-4))
-                last.replace(with:data.lastLogs(20).joined(separator: "\n"))
+                last.replace(with:data.lastLogs(20).joined(with: "\n"))
             }
 
             RunLoop.current.run(until: Date.distantFuture)
