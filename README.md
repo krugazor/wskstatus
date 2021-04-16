@@ -11,6 +11,18 @@ wskstatus lists activations from your wsk instance and displays a bunch of stati
 
 ![screenshot](screenshot.png)
 
+### Normal usage
+
+If you have swift installed on your computer, just run `swift run [-c release] wskstatus --help` to see the available options
+
+For example, you may want to run `swift run wskstatus --frame daily` to see stats about daily activations
+
+### Docker
+
+If you do not have swift or do not want to install swift on your computer, you can use the included docker wrapper. Just look at the available options by running `./wskstatus-docker --help`
+
+For example, you may want to run `./wskstatus-docker --frame daily` to see stats about daily activations
+
 ### Description
 
 On the left, the top graph represents the number of activations in the timeframe, the bottom one, the average duration of an action.  
@@ -45,6 +57,7 @@ One column of your terminal will represent one minute/hour/day/week/month/year a
 
 ### Change Log
 
+- 0.1.3: docker integration to avoid installation issues with swift
 - 0.1.2: cleanup and some documentation
 - 0.1.1: added color (red for errors) in the action log subwindow
 - 0.1.0: initial release
