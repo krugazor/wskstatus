@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>wskstatus</title>
+	<meta name="generator" content="BBEdit 12.6" />
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.js"></script>
+	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+
+<div id='datagraph'></div>
+
+<script>
+
+var graphDiv = document.getElementById('datagraph')
+var layout = {
+	'title' : { 'text':'OpenWhisk'},
+  	'grid': {'rows': 2, 'columns': 1, 'pattern': 'independent'},
+};
+
+Plotly.newPlot(graphDiv, [], layout);
+
+function refreshData() {
+	$.get( "/data/", function( data ) {
+	  Plotly.react(graphDiv, data, layout);
+	});
+}
+
+var timer = setInterval(refreshData, 10000)
+
+</script>
+
+</body>
+</html>

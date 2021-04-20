@@ -59,6 +59,11 @@ func setupWebServices(apibase: String, apiauth: String, apins: String, frame: Ti
     router.all(middleware: BodyParser(), StaticFileServer(path: "./Public"))
     router.add(templateEngine: StencilTemplateEngine())
     
+    router.get("/") { req, res, next in
+        try res.redirect("index.html")
+        next()
+    }
+    
     router.get("/data/") { req, res, next in
         let activations = data.binned.map( { $0.count } )
         let durations = data.averageDurations
@@ -71,11 +76,16 @@ func setupWebServices(apibase: String, apiauth: String, apins: String, frame: Ti
             ["x": deltas,
             "y": activations,
             "type": "line",
-            "name": "Activations"],
+            "name": "Activations",
+            "xaxis": "x1",
+            "yaxis": "y1"
+            ],
             ["x": deltas,
             "y": durations,
             "type": "bar",
-            "name": "Average Duration"],
+            "name": "Average Duration",
+            "xaxis": "x2",
+            "yaxis": "y2"]
         ]
         res.send(json: computed)
         next()
