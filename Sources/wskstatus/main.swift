@@ -102,6 +102,9 @@ struct WskStatus : ParsableCommand {
     @Option(name: .shortAndLong, help: "The tick at which data should be aggregated: minutely, hourly, daly, weekly, monthly, yearly")
     var frame: TimeFrame = .minutely
     
+    @Flag(name: .shortAndLong, help: "Launch the viewer as a web app rather than in the terminal")
+    var web : Bool = false
+    
     func readWskProps() throws -> [String:String] {
         var result = [String:String]()
         do {
@@ -128,6 +131,12 @@ struct WskStatus : ParsableCommand {
             let tapiauth = token ?? props["AUTH"]
             
             guard let apibase = tapibase, let apins = tapins, let apiauth = tapiauth else { throw ConfigurationError(msg: "Missing configuration fields. Please check your options and your .wskprops") }
+            
+            if web {
+                let router = setupWebServices(apibase: apibase, apiauth: apiauth, apins: apins, frame: frame)
+                router.webStart()
+                return
+            }
             
             var data = ActivationStore(base: apibase, auth: apiauth, namespace: apins)
             let tick: TimeInterval = 1
