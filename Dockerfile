@@ -10,6 +10,8 @@ COPY Tests /wskstatus/Tests
 
 WORKDIR /wskstatus
 
-RUN swift build -c release 
+RUN swift build -c release
+
+EXPOSE 8085
 
 CMD swift run -c release wskstatus
