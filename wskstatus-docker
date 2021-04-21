@@ -1,3 +1,4 @@
 #!/bin/bash
-if [ $(docker image ls | grep wskstatus | wc -w | awk '{ print $1}') == "0" ] ; then docker build . -t wskstatus ; else echo "not building docker image" ; fi
-docker run -it --rm -v $HOME/.wskprops:/root/.wskprops wskstatus swift run -c release wskstatus $@
+export GIT_VERSION=`git rev-parse --short HEAD`
+if [ $(docker image ls | grep wskstatus | grep $GIT_VERSION| wc -w | awk '{ print $1}') == "0" ] ; then docker build . -t wskstatus:$GIT_VERSION ; else echo "not building docker image" ; fi
+docker run -it --rm -p 8085:8085 -v $HOME/.wskprops:/root/.wskprops wskstatus:$GIT_VERSION swift run -c release wskstatus $@
