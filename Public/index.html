@@ -5,17 +5,48 @@
 	<title>wskstatus</title>
 	<meta name="generator" content="BBEdit 12.6" />
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.js"></script>
-	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
 </head>
-<body>
+<body style="height:100%;">
 
-<div id='datagraph'></div>
-
+<div class="container-fluid d-flex flex-column">
+  <div class="row">
+    <div class="col">
+		<div style="padding-top: 32px;">
+			<h4>Activations &amp; Durations</h4>
+			<div id='datagraph' class="container-md"></div>
+		</div>
+	</div>
+	<div class="col">
+		<div style="padding-top: 32px;">
+			<h4>Actions ranked by activations</h4>
+			<div id="ranked"></div>
+		</div>
+	</div>
+  </div>
+  <div class="row flex-fill">
+  	<div class="col d-flex flex-column">
+  		<div class='mh-100'>
+            <center><h4 id='frame'></h4></center>
+            <center><h4>Activations Logs</h4></center>
+			<div id="logs" style='overflow:auto;'>
+			</div>
+		</div>
+  	</div>
+  </div>
+  <div class="row">
+    <div class="col">
+    	<hr/>
+    	<i>(Poorly) Made with <a href='https://github.com/krugazor/wskstatus'>wskstatus</a> and ☕️</i>
+	</div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
 
 var graphDiv = document.getElementById('datagraph')
 var layout = {
-	'title' : { 'text':'OpenWhisk'},
   	'grid': {'rows': 2, 'columns': 1, 'pattern': 'independent'},
 };
 
@@ -23,12 +54,18 @@ Plotly.newPlot(graphDiv, [], layout);
 
 function refreshData() {
 	$.get( "/data/", function( data ) {
-	  Plotly.react(graphDiv, data, layout);
+	  Plotly.react(graphDiv, data['graphs'], layout);
+      
+      $('#frame').html(data['frame']);
+      $('#ranked').html(data['ranked']);
+      $('#logs').html(data['logs']);
+      var logselement = document.getElementById("logs");
+      logselement.scrollTop = logselement.scrollHeight;
 	});
 }
 
-var timer = setInterval(refreshData, 10000)
-
+var timer = setInterval(refreshData, 10000);
+refreshData();
 </script>
 
 </body>
