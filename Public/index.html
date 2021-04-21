@@ -9,7 +9,8 @@
 </head>
 <body style="height:100%;">
 
-<div class="container-fluid d-flex flex-column">
+<div class="container-fluid d-flex flex-column vh-100">
+            <center><h4 id='frame'></h4></center>
   <div class="row">
     <div class="col">
 		<div style="padding-top: 32px;">
@@ -24,12 +25,15 @@
 		</div>
 	</div>
   </div>
-  <div class="row flex-fill">
+  <div class="col">
+  	<div class="row">
+  	           <h4>Activations Logs</h4>
+	</div>
+  </div>
+  <div id="actlogs" class="row flex-fill" style="height: calc(50vh - 2rem);overflow-y: auto;">
   	<div class="col d-flex flex-column">
-  		<div class='mh-100'>
-            <center><h4 id='frame'></h4></center>
-            <center><h4>Activations Logs</h4></center>
-			<div id="logs" style='overflow:auto;'>
+  		<div>
+ 			<div id="logs" style='overflow:auto;'>
 			</div>
 		</div>
   	</div>
@@ -59,7 +63,7 @@ function refreshData() {
       $('#frame').html(data['frame']);
       $('#ranked').html(data['ranked']);
       $('#logs').html(data['logs']);
-      var logselement = document.getElementById("logs");
+      var logselement = document.getElementById("actlogs");
       logselement.scrollTop = logselement.scrollHeight;
 	});
 }
