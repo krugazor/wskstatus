@@ -23,6 +23,14 @@ If you do not have swift or do not want to install swift on your computer, you c
 
 For example, you may want to run `./wskstatus-docker --frame daily` to see stats about daily activations
 
+### Web Interface
+
+I caved in to demands, and `wskstatus` now comes with a "dashboard ready" web interface showing exactly the same things as the terminal version.
+
+You can start it by typing `wskstatus --web --frame hourly` for instance, or, if you won't/can't install the swift toolchain, by using the docker wrapper like this `./wskstatus-docker --web --frame daily`
+
+Thanks to [@nugetchar](https://github.com/nugetchar) for the patient help.
+
 ### Description
 
 On the left, the top graph represents the number of activations in the timeframe, the bottom one, the average duration of an action.  
@@ -57,6 +65,7 @@ One column of your terminal will represent one minute/hour/day/week/month/year a
 
 ### Change Log
 
+- 0.2.0: web interface for dashboard-like integrations
 - 0.1.3: docker integration to avoid installation issues with swift
 - 0.1.2: cleanup and some documentation
 - 0.1.1: added color (red for errors) in the action log subwindow
