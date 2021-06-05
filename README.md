@@ -46,6 +46,8 @@ On the right, the top text window gives you the number of activations of as many
 
 `-t <token>` / `--token <token>` overrides the contents of `~/.wskprops` with a different OpenWhisk access token
 
+`-i` / `--insecure` allows connections to a server with self-signed certificates
+
 #### Binning
 
 `-f <interval>` / `--frame <interval>` sets the length of the time interval to aggregate data for. Possible values are:
@@ -65,6 +67,7 @@ One column of your terminal will represent one minute/hour/day/week/month/year a
 
 ### Change Log
 
+- 0.2.1: mimic `-i` flag of wsk for self-hosted SSL certificates
 - 0.2.0: web interface for dashboard-like integrations
 - 0.1.3: docker integration to avoid installation issues with swift
 - 0.1.2: cleanup and some documentation

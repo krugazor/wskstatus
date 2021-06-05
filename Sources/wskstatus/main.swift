@@ -84,6 +84,19 @@ extension ActivationStore {
     }
 }
 
+class InsecureSSLDelegate : NSObject, URLSessionDelegate {
+    func urlSession(_ session: URLSession,
+                    didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> ()) {
+        if challenge.protectionSpace.serverTrust == nil {
+            completionHandler(.useCredential, nil)
+        } else {
+            let trust: SecTrust = challenge.protectionSpace.serverTrust!
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        }
+    }
+}
+
 struct WskStatus : ParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: """
@@ -101,10 +114,13 @@ struct WskStatus : ParsableCommand {
     
     @Option(name: .shortAndLong, help: "The tick at which data should be aggregated: minutely, hourly, daly, weekly, monthly, yearly")
     var frame: TimeFrame = .minutely
-    
+
     @Flag(name: .shortAndLong, help: "Launch the viewer as a web app rather than in the terminal")
     var web : Bool = false
-    
+
+    @Flag(name: .shortAndLong, help: "Ignore SSL certificate errors")
+    var insecure : Bool = false
+
     func readWskProps() throws -> [String:String] {
         var result = [String:String]()
         do {
@@ -131,7 +147,11 @@ struct WskStatus : ParsableCommand {
             let tapiauth = token ?? props["AUTH"]
             
             guard let apibase = tapibase, let apins = tapins, let apiauth = tapiauth else { throw ConfigurationError(msg: "Missing configuration fields. Please check your options and your .wskprops") }
-            
+
+            if insecure {
+                networkSession = URLSession(configuration: URLSessionConfiguration.default, delegate: InsecureSSLDelegate(), delegateQueue: nil)
+            }
+
             if web {
                 let router = setupWebServices(apibase: apibase, apiauth: apiauth, apins: apins, frame: frame)
                 router.webStart()
